@@ -1,0 +1,196 @@
+# Clawdbot - One-Click Deployment for Coolify
+# https://github.com/clawdbot/clawdbot
+#
+# Deploy your own personal AI assistant with WhatsApp, Telegram, Discord,
+# and WebChat integration.
+#
+# Quick Start:
+# 1. Copy .env.example to .env and configure your settings
+# 2. Deploy via Coolify using Docker Compose build pack
+# 3. Access Control UI at your domain and enter gateway token
+# 4. Configure channels (WhatsApp QR, Telegram token, etc.)
+
+services:
+  # =============================================================================
+  # CLAWDBOT GATEWAY - Main AI Assistant Service
+  # =============================================================================
+  clawdbot-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: clawdbot-gateway:${CLAWDBOT_VERSION:-latest}
+    container_name: clawdbot-gateway
+    restart: unless-stopped
+    
+    environment:
+      # === Core Settings ===
+      - NODE_ENV=production
+      - HOME=/home/clawdbot
+      - TERM=xterm-256color
+      
+      # === Gateway Configuration ===
+      - CLAWDBOT_GATEWAY_BIND=${CLAWDBOT_GATEWAY_BIND:-lan}
+      - CLAWDBOT_GATEWAY_PORT=${CLAWDBOT_GATEWAY_PORT:-18789}
+      - CLAWDBOT_GATEWAY_TOKEN=${CLAWDBOT_GATEWAY_TOKEN:-}
+      
+      # === Data Paths ===
+      - CLAWDBOT_CONFIG_PATH=/data/.clawdbot/clawdbot.json
+      - CLAWDBOT_STATE_DIR=/data/.clawdbot
+      - XDG_CONFIG_HOME=/data/.clawdbot
+      
+      # === Model Authentication ===
+      # Set at least one of these for the AI to work
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      
+      # === Channel: Telegram ===
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      
+      # === Channel: Discord ===
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
+      
+      # === Channel: Slack ===
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
+      - SLACK_APP_TOKEN=${SLACK_APP_TOKEN:-}
+      
+      # === Browser Integration ===
+      - CLAWDBOT_BROWSER_ENABLED=${CLAWDBOT_BROWSER_ENABLED:-true}
+      - CLAWDBOT_BROWSER_URL=http://clawdbot-browser:9222
+      
+      # === Redis Cache ===
+      - REDIS_URL=${REDIS_URL:-redis://clawdbot-redis:6379}
+      
+      # === Gmail Integration (optional) ===
+      - GOG_KEYRING_PASSWORD=${GOG_KEYRING_PASSWORD:-}
+      
+      # === Web Search (optional) ===
+      - BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY:-}
+      
+      # === Optional Integrations ===
+      - GOOGLE_PLACES_API_KEY=${GOOGLE_PLACES_API_KEY:-}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
+    
+    volumes:
+      # Persistent storage for config, credentials, and sessions
+      - clawdbot-config:/data/.clawdbot
+      # Agent workspace for code and artifacts
+      - clawdbot-workspace:/data/clawd
+    
+    ports:
+      # Gateway WebSocket + Control UI
+      - "${CLAWDBOT_GATEWAY_PORT:-18789}:18789"
+      # Canvas host (optional, for mobile nodes)
+      - "${CLAWDBOT_CANVAS_PORT:-18793}:18793"
+    
+    depends_on:
+      clawdbot-redis:
+        condition: service_healthy
+      clawdbot-browser:
+        condition: service_healthy
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    labels:
+      # Coolify labels for reverse proxy
+      - "coolify.managed=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.clawdbot.rule=Host(`${COOLIFY_FQDN:-localhost}`)"
+      - "traefik.http.routers.clawdbot.entrypoints=http"
+      - "traefik.http.routers.clawdbot-secure.rule=Host(`${COOLIFY_FQDN:-localhost}`)"
+      - "traefik.http.routers.clawdbot-secure.entrypoints=https"
+      - "traefik.http.routers.clawdbot-secure.tls=true"
+      - "traefik.http.services.clawdbot.loadbalancer.server.port=18789"
+    
+    networks:
+      - clawdbot-network
+
+  # =============================================================================
+  # REDIS - Cache and Session Storage
+  # =============================================================================
+  clawdbot-redis:
+    image: redis:7-alpine
+    container_name: clawdbot-redis
+    restart: unless-stopped
+    
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    
+    volumes:
+      - clawdbot-redis-data:/data
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    
+    networks:
+      - clawdbot-network
+
+  # =============================================================================
+  # BROWSER - Chromium for Browser Automation Tool
+  # =============================================================================
+  clawdbot-browser:
+    build:
+      context: .
+      dockerfile: Dockerfile.browser
+    image: clawdbot-browser:latest
+    container_name: clawdbot-browser
+    restart: unless-stopped
+    
+    environment:
+      - SCREEN_WIDTH=${BROWSER_SCREEN_WIDTH:-1920}
+      - SCREEN_HEIGHT=${BROWSER_SCREEN_HEIGHT:-1080}
+      - SCREEN_DEPTH=24
+    
+    # Security: run with limited capabilities
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_ADMIN  # Required for Chrome sandbox
+    
+    # Shared memory for Chrome
+    shm_size: 2gb
+    
+    volumes:
+      - clawdbot-browser-data:/home/browser
+    
+    ports:
+      # noVNC web interface (optional, for debugging)
+      - "${BROWSER_NOVNC_PORT:-6080}:6080"
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9222/json/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    networks:
+      - clawdbot-network
+
+# =============================================================================
+# VOLUMES - Persistent Storage
+# =============================================================================
+volumes:
+  clawdbot-config:
+    name: clawdbot-config
+  clawdbot-workspace:
+    name: clawdbot-workspace
+  clawdbot-redis-data:
+    name: clawdbot-redis-data
+  clawdbot-browser-data:
+    name: clawdbot-browser-data
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  clawdbot-network:
+    name: clawdbot-network
+    driver: bridge

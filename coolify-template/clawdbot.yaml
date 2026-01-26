@@ -1,0 +1,105 @@
+# documentation: https://docs.clawd.bot
+# slogan: Personal AI assistant for WhatsApp, Telegram, Discord and more
+# tags: ai,assistant,chatbot,whatsapp,telegram,discord,automation,llm,claude,openai
+# logo: svgs/clawdbot.svg
+# port: 18789
+
+services:
+  clawdbot:
+    image: "node:22-bookworm"
+    working_dir: /app
+    command: >
+      bash -c "
+        if [ ! -d /app/node_modules ]; then
+          echo 'First run: Installing Clawdbot...';
+          git clone --depth 1 https://github.com/clawdbot/clawdbot.git /tmp/clawdbot &&
+          cp -r /tmp/clawdbot/* /app/ &&
+          corepack enable &&
+          pnpm install &&
+          pnpm build &&
+          pnpm ui:install &&
+          pnpm ui:build;
+        fi;
+        node dist/index.js gateway --bind lan --port 18789
+      "
+    environment:
+      - NODE_ENV=production
+      - HOME=/home/node
+      - TERM=xterm-256color
+      # Gateway Configuration
+      - CLAWDBOT_GATEWAY_BIND=lan
+      - CLAWDBOT_GATEWAY_PORT=18789
+      - CLAWDBOT_GATEWAY_TOKEN=${SERVICE_PASSWORD_CLAWDBOT}
+      # Data Paths
+      - CLAWDBOT_CONFIG_PATH=/data/.clawdbot/clawdbot.json
+      - CLAWDBOT_STATE_DIR=/data/.clawdbot
+      - XDG_CONFIG_HOME=/data/.clawdbot
+      # Model Authentication (set at least one)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # Channel: Telegram
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      # Channel: Discord
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
+      # Channel: Slack
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
+      - SLACK_APP_TOKEN=${SLACK_APP_TOKEN:-}
+      # Browser Integration
+      - CLAWDBOT_BROWSER_ENABLED=${CLAWDBOT_BROWSER_ENABLED:-true}
+      - CLAWDBOT_BROWSER_URL=http://clawdbot-browser:9222
+      # Redis Cache
+      - REDIS_URL=redis://clawdbot-redis:6379
+      # Optional: Web Search
+      - BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY:-}
+      # Optional: Gmail
+      - GOG_KEYRING_PASSWORD=${GOG_KEYRING_PASSWORD:-}
+    volumes:
+      - clawdbot-app:/app
+      - clawdbot-config:/data/.clawdbot
+      - clawdbot-workspace:/data/clawd
+    depends_on:
+      clawdbot-redis:
+        condition: service_healthy
+      clawdbot-browser:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.clawdbot.entrypoints=http"
+      - "traefik.http.services.clawdbot.loadbalancer.server.port=18789"
+
+  clawdbot-redis:
+    image: "redis:7-alpine"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - clawdbot-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  clawdbot-browser:
+    image: "zenika/alpine-chrome:with-node"
+    command: chromium-browser --headless --disable-gpu --disable-software-rasterizer --disable-dev-shm-usage --no-sandbox --remote-debugging-address=0.0.0.0 --remote-debugging-port=9222
+    environment:
+      - CHROME_BIN=/usr/bin/chromium-browser
+    shm_size: 2gb
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9222/json/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  clawdbot-app:
+  clawdbot-config:
+  clawdbot-workspace:
+  clawdbot-redis-data:

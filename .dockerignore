@@ -1,0 +1,36 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+LICENSE
+docs/
+
+# Environment files
+.env
+.env.*
+
+# IDE
+.idea/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local volumes
+clawdbot-config/
+clawdbot-workspace/
+clawdbot-redis-data/
+clawdbot-browser-data/
+
+# Coolify template (not needed in image)
+coolify-template/
+
+# Scripts (copied separately if needed)
+# scripts/
+
+# Logs
+*.log
+logs/

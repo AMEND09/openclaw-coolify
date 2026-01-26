@@ -1,0 +1,94 @@
+# Clawdbot Browser Automation Container
+# Provides Chromium with CDP for browser tool functionality
+#
+# Based on the official Clawdbot sandbox-browser setup
+
+FROM debian:bookworm-slim
+
+LABEL org.opencontainers.image.title="Clawdbot Browser"
+LABEL org.opencontainers.image.description="Browser automation container for Clawdbot"
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
+    chromium-driver \
+    xvfb \
+    x11vnc \
+    novnc \
+    websockify \
+    supervisor \
+    curl \
+    ca-certificates \
+    fonts-liberation \
+    fonts-noto-color-emoji \
+    fonts-noto-cjk \
+    dbus \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create browser user
+RUN groupadd -r browser && useradd -r -g browser -G audio,video -d /home/browser -s /bin/bash browser
+RUN mkdir -p /home/browser/Downloads && chown -R browser:browser /home/browser
+
+# Setup Xvfb display
+ENV DISPLAY=:99
+ENV SCREEN_WIDTH=1920
+ENV SCREEN_HEIGHT=1080
+ENV SCREEN_DEPTH=24
+
+# Chrome/Chromium settings
+ENV CHROME_BIN=/usr/bin/chromium
+ENV CHROMIUM_FLAGS="--no-sandbox --disable-gpu --disable-software-rasterizer --disable-dev-shm-usage"
+
+# Create supervisor config
+RUN mkdir -p /var/log/supervisor
+COPY <<EOF /etc/supervisor/conf.d/supervisord.conf
+[supervisord]
+nodaemon=true
+logfile=/var/log/supervisor/supervisord.log
+pidfile=/var/run/supervisord.pid
+
+[program:xvfb]
+command=Xvfb :99 -screen 0 %(ENV_SCREEN_WIDTH)sx%(ENV_SCREEN_HEIGHT)sx%(ENV_SCREEN_DEPTH)s
+autorestart=true
+priority=100
+stdout_logfile=/var/log/supervisor/xvfb.log
+stderr_logfile=/var/log/supervisor/xvfb_err.log
+
+[program:chromium]
+command=chromium --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --no-first-run --no-default-browser-check --disable-background-networking --disable-sync --disable-translate --metrics-recording-only --safebrowsing-disable-auto-update --user-data-dir=/home/browser/.chromium %(ENV_CHROMIUM_FLAGS)s
+user=browser
+autorestart=true
+priority=200
+stdout_logfile=/var/log/supervisor/chromium.log
+stderr_logfile=/var/log/supervisor/chromium_err.log
+
+[program:x11vnc]
+command=x11vnc -display :99 -nopw -listen 0.0.0.0 -rfbport 5900 -xkb -forever -shared
+autorestart=true
+priority=300
+stdout_logfile=/var/log/supervisor/x11vnc.log
+stderr_logfile=/var/log/supervisor/x11vnc_err.log
+
+[program:novnc]
+command=websockify --web=/usr/share/novnc/ 6080 localhost:5900
+autorestart=true
+priority=400
+stdout_logfile=/var/log/supervisor/novnc.log
+stderr_logfile=/var/log/supervisor/novnc_err.log
+EOF
+
+# Create chromium user data directory
+RUN mkdir -p /home/browser/.chromium && chown -R browser:browser /home/browser/.chromium
+
+# Expose ports
+# 9222 - Chrome DevTools Protocol (CDP)
+# 6080 - noVNC web interface
+# 5900 - VNC
+EXPOSE 9222 6080 5900
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:9222/json/version || exit 1
+
+# Start supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

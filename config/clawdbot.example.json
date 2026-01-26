@@ -1,0 +1,106 @@
+{
+  "// DOCUMENTATION": "See https://docs.clawd.bot/gateway/configuration for full reference",
+  
+  "agent": {
+    "// model": "AI model to use. Recommended: anthropic/claude-opus-4-5",
+    "model": "anthropic/claude-sonnet-4-20250514",
+    
+    "// workspace": "Agent workspace directory",
+    "workspace": "/data/clawd"
+  },
+  
+  "gateway": {
+    "// bind": "Network bind mode: loopback, lan, or tailnet",
+    "bind": "lan",
+    
+    "// port": "Gateway port",
+    "port": 18789,
+    
+    "auth": {
+      "// token": "Set via CLAWDBOT_GATEWAY_TOKEN env var",
+      "mode": "token"
+    }
+  },
+  
+  "channels": {
+    "whatsapp": {
+      "// enabled": "Enable WhatsApp channel",
+      "enabled": true,
+      
+      "// allowFrom": "Phone numbers allowed to message (empty = pairing required)",
+      "allowFrom": [],
+      
+      "groups": {
+        "*": {
+          "requireMention": true
+        }
+      }
+    },
+    
+    "telegram": {
+      "// enabled": "Enable Telegram channel",
+      "enabled": true,
+      
+      "// botToken": "Set via TELEGRAM_BOT_TOKEN env var",
+      
+      "groups": {
+        "*": {
+          "requireMention": true
+        }
+      }
+    },
+    
+    "discord": {
+      "// enabled": "Enable Discord channel",
+      "enabled": true,
+      
+      "// token": "Set via DISCORD_BOT_TOKEN env var",
+      
+      "dm": {
+        "policy": "pairing"
+      }
+    },
+    
+    "slack": {
+      "// enabled": "Enable Slack channel",
+      "enabled": true,
+      
+      "// botToken": "Set via SLACK_BOT_TOKEN env var",
+      "// appToken": "Set via SLACK_APP_TOKEN env var",
+      
+      "dm": {
+        "policy": "pairing"
+      }
+    }
+  },
+  
+  "browser": {
+    "enabled": true,
+    "controlUrl": "http://clawdbot-browser:9222"
+  },
+  
+  "tools": {
+    "web": {
+      "search": {
+        "// apiKey": "Set via BRAVE_SEARCH_API_KEY env var"
+      }
+    }
+  },
+  
+  "agents": {
+    "defaults": {
+      "workspace": "/data/clawd",
+      
+      "sandbox": {
+        "// mode": "Sandbox mode: off, non-main, all",
+        "mode": "off"
+      }
+    }
+  },
+  
+  "messages": {
+    "groupChat": {
+      "mentionPatterns": ["@clawd", "@clawdbot"]
+    }
+  }
+}
