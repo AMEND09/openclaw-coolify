@@ -101,6 +101,13 @@ services:
       retries: 5
       start_period: 120s
     
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.clawdbot-gateway.entrypoints=http"
+      - "traefik.http.routers.clawdbot-gateway-secure.entrypoints=https"
+      - "traefik.http.routers.clawdbot-gateway-secure.tls=true"
+      - "traefik.http.services.clawdbot-gateway.loadbalancer.server.port=18789"
+    
     networks:
       - clawdbot-network
 
