@@ -23,6 +23,19 @@ echo "Trusted proxies: $PROXIES_JSON"
 # Create config directory if it doesn't exist
 mkdir -p /data/.clawdbot
 
+# Determine default model based on available API keys
+DEFAULT_MODEL="anthropic/claude-sonnet-4-5"  # fallback
+if [ -n "$ANTHROPIC_API_KEY" ]; then
+    DEFAULT_MODEL="anthropic/claude-sonnet-4-5"
+elif [ -n "$GEMINI_API_KEY" ]; then
+    DEFAULT_MODEL="google/gemini-2.5-pro"
+elif [ -n "$OPENAI_API_KEY" ]; then
+    DEFAULT_MODEL="openai/gpt-4o"
+elif [ -n "$OPENROUTER_API_KEY" ]; then
+    DEFAULT_MODEL="openrouter/anthropic/claude-sonnet-4"
+fi
+echo "Default model: $DEFAULT_MODEL"
+
 # Always create/update config to ensure gateway.mode is set
 # (Previous configs may be missing required fields)
 cat > /data/.clawdbot/clawdbot.json << EOF
@@ -42,7 +55,10 @@ cat > /data/.clawdbot/clawdbot.json << EOF
   },
   "agents": {
     "defaults": {
-      "workspace": "/data/clawd"
+      "workspace": "/data/clawd",
+      "model": {
+        "primary": "${DEFAULT_MODEL}"
+      }
     }
   }
 }
