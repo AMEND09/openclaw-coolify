@@ -69,6 +69,19 @@ cat > /data/.clawdbot/clawdbot.json << EOF
     "whatsapp": {
       "dmPolicy": "open",
       "allowFrom": ["*"]
+    },
+    "discord": {
+      "groupPolicy": "open",
+      "dm": {
+        "enabled": true,
+        "policy": "open",
+        "allowFrom": ["*"]
+      },
+      "guilds": {
+        "*": {
+          "requireMention": false
+        }
+      }
     }
   },
   "agents": {
