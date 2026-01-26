@@ -40,9 +40,14 @@ services:
       
       # === Model Authentication ===
       # Set at least one of these for the AI to work
+      # API Keys (direct):
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      # Claude OAuth (alternative to API key - paste from 'claude setup-token'):
+      - CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN:-}
+      # OpenRouter (access many models with one key):
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       
       # === Channel: Telegram ===
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
