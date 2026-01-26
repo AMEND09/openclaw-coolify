@@ -55,43 +55,60 @@ mkdir -p "$AUTH_DIR"
 
 # Build auth profiles from environment variables
 AUTH_PROFILES="{}"
+HAS_AUTH=false
 
-# Add Anthropic API key if provided
+# Add Anthropic API key if provided (RECOMMENDED - simplest option)
 if [ -n "$ANTHROPIC_API_KEY" ]; then
     AUTH_PROFILES=$(echo "$AUTH_PROFILES" | jq --arg key "$ANTHROPIC_API_KEY" '. + {"anthropic:api": {"provider": "anthropic", "mode": "api_key", "apiKey": $key}}')
     echo "Added Anthropic API key to auth profiles"
-fi
-
-# Add Claude OAuth token if provided (from claude setup-token)
-if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
-    AUTH_PROFILES=$(echo "$AUTH_PROFILES" | jq --arg token "$CLAUDE_CODE_OAUTH_TOKEN" '. + {"anthropic:claude-cli": {"provider": "anthropic", "mode": "oauth", "accessToken": $token}}')
-    echo "Added Claude OAuth token to auth profiles"
+    HAS_AUTH=true
 fi
 
 # Add OpenAI API key if provided
 if [ -n "$OPENAI_API_KEY" ]; then
     AUTH_PROFILES=$(echo "$AUTH_PROFILES" | jq --arg key "$OPENAI_API_KEY" '. + {"openai:api": {"provider": "openai", "mode": "api_key", "apiKey": $key}}')
     echo "Added OpenAI API key to auth profiles"
+    HAS_AUTH=true
 fi
 
 # Add OpenRouter API key if provided
 if [ -n "$OPENROUTER_API_KEY" ]; then
     AUTH_PROFILES=$(echo "$AUTH_PROFILES" | jq --arg key "$OPENROUTER_API_KEY" '. + {"openrouter:api": {"provider": "openrouter", "mode": "api_key", "apiKey": $key}}')
     echo "Added OpenRouter API key to auth profiles"
+    HAS_AUTH=true
 fi
 
 # Add Gemini API key if provided
 if [ -n "$GEMINI_API_KEY" ]; then
     AUTH_PROFILES=$(echo "$AUTH_PROFILES" | jq --arg key "$GEMINI_API_KEY" '. + {"google:api": {"provider": "google", "mode": "api_key", "apiKey": $key}}')
     echo "Added Gemini API key to auth profiles"
+    HAS_AUTH=true
 fi
 
 # Write auth profiles if any keys were added
-if [ "$AUTH_PROFILES" != "{}" ]; then
+if [ "$HAS_AUTH" = true ]; then
     echo "$AUTH_PROFILES" > "$AUTH_DIR/auth-profiles.json"
     echo "Auth profiles written to $AUTH_DIR/auth-profiles.json"
-else
-    echo "Warning: No API keys or OAuth tokens configured. Add ANTHROPIC_API_KEY, OPENAI_API_KEY, or CLAUDE_CODE_OAUTH_TOKEN to environment variables."
+fi
+
+# Handle Claude setup-token separately (requires clawdbot CLI to process)
+if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ] && [ "$HAS_AUTH" = false ]; then
+    echo "CLAUDE_CODE_OAUTH_TOKEN detected but setup-tokens require CLI processing."
+    echo "For easiest setup, use ANTHROPIC_API_KEY instead."
+    echo "Get an API key from: https://console.anthropic.com/settings/keys"
+fi
+
+if [ "$HAS_AUTH" = false ] && [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+    echo ""
+    echo "=========================================="
+    echo "WARNING: No API keys configured!"
+    echo "=========================================="
+    echo "Add one of these environment variables in Coolify:"
+    echo "  - ANTHROPIC_API_KEY (recommended) - get from https://console.anthropic.com/settings/keys"
+    echo "  - OPENAI_API_KEY - get from https://platform.openai.com/api-keys"
+    echo "  - OPENROUTER_API_KEY - get from https://openrouter.ai/keys"
+    echo "=========================================="
+    echo ""
 fi
 
 # Start the gateway with --allow-unconfigured flag as fallback
