@@ -2,8 +2,7 @@
 # Clawdbot Gateway Entrypoint
 # This script ensures the gateway can start with proper configuration
 
-# Don't exit on error - we want to see what fails
-set -x
+set -e
 
 # If no gateway token is set, generate one automatically
 if [ -z "$CLAWDBOT_GATEWAY_TOKEN" ]; then
