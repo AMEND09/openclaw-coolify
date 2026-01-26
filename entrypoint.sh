@@ -19,6 +19,7 @@ if [ ! -f /data/.clawdbot/clawdbot.json ]; then
     cat > /data/.clawdbot/clawdbot.json << EOF
 {
   "gateway": {
+    "mode": "local",
     "bind": "lan",
     "port": 18789,
     "auth": {
@@ -36,5 +37,5 @@ EOF
     echo "Created default config at /data/.clawdbot/clawdbot.json"
 fi
 
-# Start the gateway
-exec node dist/index.js gateway --bind lan --port 18789
+# Start the gateway with --allow-unconfigured flag as fallback
+exec node dist/index.js gateway --bind lan --port 18789 --allow-unconfigured
