@@ -102,5 +102,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # Switch to non-root user for security
 USER clawdbot
 
-# Default command
-CMD ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "18789"]
+# Default command - allow-unconfigured lets gateway start without pre-existing config
+CMD ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "18789", "--allow-unconfigured"]
