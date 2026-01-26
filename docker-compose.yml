@@ -103,7 +103,6 @@ services:
     
     networks:
       - clawdbot-network
-      - coolify
 
   # =============================================================================
   # REDIS - Cache and Session Storage
@@ -161,7 +160,4 @@ volumes:
 # =============================================================================
 networks:
   clawdbot-network:
-    name: clawdbot-network
     driver: bridge
-  coolify:
-    external: true
