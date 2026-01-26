@@ -86,14 +86,14 @@ services:
       clawdbot-redis:
         condition: service_healthy
       clawdbot-browser:
-        condition: service_healthy
+        condition: service_started
     
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 120s
     
     labels:
       # Coolify labels for reverse proxy
@@ -136,40 +136,15 @@ services:
   # BROWSER - Chromium for Browser Automation Tool
   # =============================================================================
   clawdbot-browser:
-    build:
-      context: .
-      dockerfile: Dockerfile.browser
-    image: clawdbot-browser:latest
+    image: chromedp/headless-shell:latest
     container_name: clawdbot-browser
     restart: unless-stopped
-    
-    environment:
-      - SCREEN_WIDTH=${BROWSER_SCREEN_WIDTH:-1920}
-      - SCREEN_HEIGHT=${BROWSER_SCREEN_HEIGHT:-1080}
-      - SCREEN_DEPTH=24
-    
-    # Security: run with limited capabilities
-    cap_drop:
-      - ALL
-    cap_add:
-      - SYS_ADMIN  # Required for Chrome sandbox
     
     # Shared memory for Chrome
     shm_size: 2gb
     
-    volumes:
-      - clawdbot-browser-data:/home/browser
-    
-    ports:
-      # noVNC web interface (optional, for debugging)
-      - "${BROWSER_NOVNC_PORT:-6080}:6080"
-    
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9222/json/version"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+    # Chrome runs with --remote-debugging-port=9222 by default
+    # No healthcheck needed - chromedp/headless-shell is minimal
     
     networks:
       - clawdbot-network
@@ -184,8 +159,6 @@ volumes:
     name: clawdbot-workspace
   clawdbot-redis-data:
     name: clawdbot-redis-data
-  clawdbot-browser-data:
-    name: clawdbot-browser-data
 
 # =============================================================================
 # NETWORKS
