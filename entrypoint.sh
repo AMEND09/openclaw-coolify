@@ -45,12 +45,11 @@ if [ -n "$DISCORD_BOT_TOKEN" ]; then
     echo "Discord bot token detected"
 fi
 
-# Always create/update config to ensure gateway.mode is set
+# Always create/update config with proper gateway configuration
 # (Previous configs may be missing required fields)
 cat > /data/.openclaw/openclaw.json << EOF
 {
   "gateway": {
-    "mode": "gateway",
     "bind": "lan",
     "port": 18789,
     "auth": {
