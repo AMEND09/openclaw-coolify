@@ -1,8 +1,8 @@
 #!/bin/bash
 # =============================================================================
-# Clawdbot Coolify Setup Script
+# OpenClaw Coolify Setup Script
 # =============================================================================
-# This script helps configure Clawdbot after deployment on Coolify.
+# This script helps configure OpenClaw after deployment on Coolify.
 # Run this script on your Coolify server after the initial deployment.
 #
 # Usage: ./scripts/setup.sh
@@ -54,7 +54,7 @@ check_docker_access() {
 check_containers() {
     print_header "Checking Container Status"
     
-    local containers=("clawdbot-gateway" "clawdbot-redis" "clawdbot-browser")
+    local containers=("openclaw-gateway" "openclaw-redis" "openclaw-browser")
     local all_running=true
     
     for container in "${containers[@]}"; do
@@ -78,7 +78,7 @@ check_containers() {
 check_gateway_health() {
     print_header "Checking Gateway Health"
     
-    if docker exec clawdbot-gateway curl -sf http://localhost:18789/health > /dev/null 2>&1; then
+    if docker exec openclaw-gateway curl -sf http://localhost:18789/health > /dev/null 2>&1; then
         print_success "Gateway is healthy"
         return 0
     else
@@ -87,19 +87,19 @@ check_gateway_health() {
     fi
 }
 
-# Run clawdbot doctor
+# Run openclaw doctor
 run_doctor() {
-    print_header "Running Clawdbot Doctor"
-    docker exec clawdbot-gateway node dist/index.js doctor 2>/dev/null || \
-        docker exec clawdbot-gateway clawdbot doctor 2>/dev/null || \
+    print_header "Running OpenClaw Doctor"
+    docker exec openclaw-gateway node dist/index.js doctor 2>/dev/null || \
+        docker exec openclaw-gateway openclaw doctor 2>/dev/null || \
         print_warning "Could not run doctor command"
 }
 
 # Show status
 show_status() {
-    print_header "Clawdbot Status"
-    docker exec clawdbot-gateway node dist/index.js status 2>/dev/null || \
-        docker exec clawdbot-gateway clawdbot status 2>/dev/null || \
+    print_header "OpenClaw Status"
+    docker exec openclaw-gateway node dist/index.js status 2>/dev/null || \
+        docker exec openclaw-gateway openclaw status 2>/dev/null || \
         print_warning "Could not get status"
 }
 
@@ -117,11 +117,11 @@ configure_whatsapp() {
         echo "Starting WhatsApp login... Scan the QR code with your phone."
         echo "(WhatsApp → Settings → Linked Devices → Link a Device)"
         echo ""
-        docker exec -it clawdbot-gateway node dist/index.js channels login 2>/dev/null || \
-            docker exec -it clawdbot-gateway clawdbot channels login
+        docker exec -it openclaw-gateway node dist/index.js channels login 2>/dev/null || \
+            docker exec -it openclaw-gateway openclaw channels login
     else
         print_msg "Skipping WhatsApp configuration. You can run this later with:" "$YELLOW"
-        echo "  docker exec -it clawdbot-gateway clawdbot channels login"
+        echo "  docker exec -it openclaw-gateway openclaw channels login"
     fi
 }
 
@@ -130,19 +130,19 @@ show_channels() {
     print_header "Configured Channels"
     
     # Check environment variables
-    if docker exec clawdbot-gateway printenv TELEGRAM_BOT_TOKEN 2>/dev/null | grep -q .; then
+    if docker exec openclaw-gateway printenv TELEGRAM_BOT_TOKEN 2>/dev/null | grep -q .; then
         print_success "Telegram: Configured"
     else
         print_msg "Telegram: Not configured" "$YELLOW"
     fi
     
-    if docker exec clawdbot-gateway printenv DISCORD_BOT_TOKEN 2>/dev/null | grep -q .; then
+    if docker exec openclaw-gateway printenv DISCORD_BOT_TOKEN 2>/dev/null | grep -q .; then
         print_success "Discord: Configured"
     else
         print_msg "Discord: Not configured" "$YELLOW"
     fi
     
-    if docker exec clawdbot-gateway printenv SLACK_BOT_TOKEN 2>/dev/null | grep -q .; then
+    if docker exec openclaw-gateway printenv SLACK_BOT_TOKEN 2>/dev/null | grep -q .; then
         print_success "Slack: Configured"
     else
         print_msg "Slack: Not configured" "$YELLOW"
@@ -157,7 +157,7 @@ show_next_steps() {
     print_header "Next Steps"
     
     echo "1. Access the Control UI at your configured domain"
-    echo "   Enter your CLAWDBOT_GATEWAY_TOKEN to authenticate"
+    echo "   Enter your OPENCLAW_GATEWAY_TOKEN to authenticate"
     echo ""
     echo "2. Configure additional channels if needed:"
     echo "   - WhatsApp: ./scripts/channel-login.sh"
@@ -166,17 +166,17 @@ show_next_steps() {
     echo "3. Start chatting! Send a message via any configured channel."
     echo ""
     echo "Useful commands:"
-    echo "  docker exec clawdbot-gateway clawdbot status"
-    echo "  docker exec clawdbot-gateway clawdbot health"
-    echo "  docker exec clawdbot-gateway clawdbot doctor"
-    echo "  docker logs clawdbot-gateway"
+    echo "  docker exec openclaw-gateway openclaw status"
+    echo "  docker exec openclaw-gateway openclaw health"
+    echo "  docker exec openclaw-gateway openclaw doctor"
+    echo "  docker logs openclaw-gateway"
     echo ""
-    print_msg "Documentation: https://docs.clawd.bot" "$BLUE"
+    print_msg "Documentation: https://docs.openclaw.ai" "$BLUE"
 }
 
 # Main
 main() {
-    print_header "Clawdbot Coolify Setup"
+    print_header "OpenClaw Coolify Setup"
     
     check_docker_access
     

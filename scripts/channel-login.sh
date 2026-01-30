@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Clawdbot Channel Login Script
+# OpenClaw Channel Login Script
 # =============================================================================
 # Use this script to authenticate with messaging channels that require
 # interactive login (like WhatsApp QR code scanning).
@@ -18,7 +18,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 CHANNEL="${1:-whatsapp}"
-CONTAINER="clawdbot-gateway"
+CONTAINER="openclaw-gateway"
 
 print_header() {
     echo ""
@@ -31,7 +31,7 @@ print_header() {
 # Check if container is running
 if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
     echo -e "${YELLOW}Error: ${CONTAINER} is not running.${NC}"
-    echo "Please ensure Clawdbot is deployed and running."
+    echo "Please ensure OpenClaw is deployed and running."
     exit 1
 fi
 
@@ -47,7 +47,7 @@ case "$CHANNEL" in
         echo "Press Ctrl+C to cancel."
         echo ""
         docker exec -it "$CONTAINER" node dist/index.js channels login 2>/dev/null || \
-            docker exec -it "$CONTAINER" clawdbot channels login
+            docker exec -it "$CONTAINER" openclaw channels login
         ;;
     
     telegram|tg)
@@ -119,7 +119,7 @@ case "$CHANNEL" in
     status|all)
         print_header "Channel Status"
         docker exec "$CONTAINER" node dist/index.js status 2>/dev/null || \
-            docker exec "$CONTAINER" clawdbot status
+            docker exec "$CONTAINER" openclaw status
         ;;
     
     *)
