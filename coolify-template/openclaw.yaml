@@ -1,19 +1,19 @@
-# documentation: https://docs.clawd.bot
+# documentation: https://docs.openclaw.ai
 # slogan: Personal AI assistant for WhatsApp, Telegram, Discord and more
 # tags: ai,assistant,chatbot,whatsapp,telegram,discord,automation,llm,claude,openai
-# logo: svgs/clawdbot.svg
+# logo: svgs/openclaw.svg
 # port: 18789
 
 services:
-  clawdbot:
+  openclaw:
     image: "node:22-bookworm"
     working_dir: /app
     command: >
       bash -c "
         if [ ! -d /app/node_modules ]; then
-          echo 'First run: Installing Clawdbot...';
-          git clone --depth 1 https://github.com/clawdbot/clawdbot.git /tmp/clawdbot &&
-          cp -r /tmp/clawdbot/* /app/ &&
+          echo 'First run: Installing OpenClaw...';
+          git clone --depth 1 https://github.com/openclaw/openclaw.git /tmp/openclaw &&
+          cp -r /tmp/openclaw/* /app/ &&
           corepack enable &&
           pnpm install &&
           pnpm build &&
@@ -27,13 +27,13 @@ services:
       - HOME=/home/node
       - TERM=xterm-256color
       # Gateway Configuration
-      - CLAWDBOT_GATEWAY_BIND=lan
-      - CLAWDBOT_GATEWAY_PORT=18789
-      - CLAWDBOT_GATEWAY_TOKEN=${SERVICE_PASSWORD_CLAWDBOT}
+      - OPENCLAW_GATEWAY_BIND=lan
+      - OPENCLAW_GATEWAY_PORT=18789
+      - OPENCLAW_GATEWAY_TOKEN=${SERVICE_PASSWORD_OPENCLAW}
       # Data Paths
-      - CLAWDBOT_CONFIG_PATH=/data/.clawdbot/clawdbot.json
-      - CLAWDBOT_STATE_DIR=/data/.clawdbot
-      - XDG_CONFIG_HOME=/data/.clawdbot
+      - OPENCLAW_CONFIG_PATH=/data/.openclaw/openclaw.json
+      - OPENCLAW_STATE_DIR=/data/.openclaw
+      - XDG_CONFIG_HOME=/data/.openclaw
       # Model Authentication (set at least one)
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
@@ -45,22 +45,22 @@ services:
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
       - SLACK_APP_TOKEN=${SLACK_APP_TOKEN:-}
       # Browser Integration
-      - CLAWDBOT_BROWSER_ENABLED=${CLAWDBOT_BROWSER_ENABLED:-true}
-      - CLAWDBOT_BROWSER_URL=http://clawdbot-browser:9222
+      - OPENCLAW_BROWSER_ENABLED=${OPENCLAW_BROWSER_ENABLED:-true}
+      - OPENCLAW_BROWSER_URL=http://openclaw-browser:9222
       # Redis Cache
-      - REDIS_URL=redis://clawdbot-redis:6379
+      - REDIS_URL=redis://openclaw-redis:6379
       # Optional: Web Search
       - BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY:-}
       # Optional: Gmail
       - GOG_KEYRING_PASSWORD=${GOG_KEYRING_PASSWORD:-}
     volumes:
-      - clawdbot-app:/app
-      - clawdbot-config:/data/.clawdbot
-      - clawdbot-workspace:/data/clawd
+      - openclaw-app:/app
+      - openclaw-config:/data/.openclaw
+      - openclaw-workspace:/data/openclaw
     depends_on:
-      clawdbot-redis:
+      openclaw-redis:
         condition: service_healthy
-      clawdbot-browser:
+      openclaw-browser:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
@@ -70,14 +70,14 @@ services:
       start_period: 120s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.clawdbot.entrypoints=http"
-      - "traefik.http.services.clawdbot.loadbalancer.server.port=18789"
+      - "traefik.http.routers.openclaw.entrypoints=http"
+      - "traefik.http.services.openclaw.loadbalancer.server.port=18789"
 
-  clawdbot-redis:
+  openclaw-redis:
     image: "redis:7-alpine"
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
-      - clawdbot-redis-data:/data
+      - openclaw-redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -85,7 +85,7 @@ services:
       retries: 3
       start_period: 10s
 
-  clawdbot-browser:
+  openclaw-browser:
     image: "zenika/alpine-chrome:with-node"
     command: chromium-browser --headless --disable-gpu --disable-software-rasterizer --disable-dev-shm-usage --no-sandbox --remote-debugging-address=0.0.0.0 --remote-debugging-port=9222
     environment:
@@ -99,7 +99,7 @@ services:
       start_period: 30s
 
 volumes:
-  clawdbot-app:
-  clawdbot-config:
-  clawdbot-workspace:
-  clawdbot-redis-data:
+  openclaw-app:
+  openclaw-config:
+  openclaw-workspace:
+  openclaw-redis-data:

@@ -1,5 +1,5 @@
-# Clawdbot - One-Click Deployment for Coolify
-# https://github.com/clawdbot/clawdbot
+# OpenClaw - One-Click Deployment for Coolify
+# https://github.com/openclaw/openclaw
 #
 # Deploy your own personal AI assistant with WhatsApp, Telegram, Discord,
 # and WebChat integration.
@@ -12,32 +12,32 @@
 
 services:
   # =============================================================================
-  # CLAWDBOT GATEWAY - Main AI Assistant Service
+  # OPENCLAW GATEWAY - Main AI Assistant Service
   # =============================================================================
-  clawdbot-gateway:
+  openclaw-gateway:
     build:
       context: .
       dockerfile: Dockerfile
-    image: clawdbot-gateway:${CLAWDBOT_VERSION:-latest}
-    container_name: clawdbot-gateway
+    image: openclaw-gateway:${OPENCLAW_VERSION:-latest}
+    container_name: openclaw-gateway
     restart: unless-stopped
-    
+
     environment:
       # === Core Settings ===
       - NODE_ENV=production
-      - HOME=/home/clawdbot
+      - HOME=/home/openclaw
       - TERM=xterm-256color
-      
+
       # === Gateway Configuration ===
-      - CLAWDBOT_GATEWAY_BIND=${CLAWDBOT_GATEWAY_BIND:-lan}
-      - CLAWDBOT_GATEWAY_PORT=${CLAWDBOT_GATEWAY_PORT:-18789}
-      - CLAWDBOT_GATEWAY_TOKEN=${CLAWDBOT_GATEWAY_TOKEN:-}
-      
+      - OPENCLAW_GATEWAY_BIND=${OPENCLAW_GATEWAY_BIND:-lan}
+      - OPENCLAW_GATEWAY_PORT=${OPENCLAW_GATEWAY_PORT:-18789}
+      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:-}
+
       # === Data Paths ===
-      - CLAWDBOT_CONFIG_PATH=/data/.clawdbot/clawdbot.json
-      - CLAWDBOT_STATE_DIR=/data/.clawdbot
-      - XDG_CONFIG_HOME=/data/.clawdbot
-      
+      - OPENCLAW_CONFIG_PATH=/data/.openclaw/openclaw.json
+      - OPENCLAW_STATE_DIR=/data/.openclaw
+      - XDG_CONFIG_HOME=/data/.openclaw
+
       # === Model Authentication ===
       # Set at least one of these for the AI to work
       # API Keys (direct):
@@ -48,123 +48,123 @@ services:
       - CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN:-}
       # OpenRouter (access many models with one key):
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
-      
+
       # === Channel: Telegram ===
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
-      
+
       # === Channel: Discord ===
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
-      
+
       # === Channel: Slack ===
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
       - SLACK_APP_TOKEN=${SLACK_APP_TOKEN:-}
-      
+
       # === Browser Integration ===
-      - CLAWDBOT_BROWSER_ENABLED=${CLAWDBOT_BROWSER_ENABLED:-true}
-      - CLAWDBOT_BROWSER_URL=http://clawdbot-browser:9222
-      
+      - OPENCLAW_BROWSER_ENABLED=${OPENCLAW_BROWSER_ENABLED:-true}
+      - OPENCLAW_BROWSER_URL=http://openclaw-browser:9222
+
       # === Redis Cache ===
-      - REDIS_URL=${REDIS_URL:-redis://clawdbot-redis:6379}
-      
+      - REDIS_URL=${REDIS_URL:-redis://openclaw-redis:6379}
+
       # === Gmail Integration (optional) ===
       - GOG_KEYRING_PASSWORD=${GOG_KEYRING_PASSWORD:-}
-      
+
       # === Web Search (optional) ===
       - BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY:-}
-      
+
       # === Optional Integrations ===
       - GOOGLE_PLACES_API_KEY=${GOOGLE_PLACES_API_KEY:-}
       - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
-    
+
     volumes:
       # Persistent storage for config, credentials, and sessions
-      - clawdbot-config:/data/.clawdbot
+      - openclaw-config:/data/.openclaw
       # Agent workspace for code and artifacts
-      - clawdbot-workspace:/data/clawd
-    
+      - openclaw-workspace:/data/openclaw
+
     ports:
       # Gateway WebSocket + Control UI
-      - "${CLAWDBOT_GATEWAY_PORT:-18789}:18789"
+      - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
       # Canvas host (optional, for mobile nodes)
-      - "${CLAWDBOT_CANVAS_PORT:-18793}:18793"
-    
+      - "${OPENCLAW_CANVAS_PORT:-18793}:18793"
+
     depends_on:
-      clawdbot-redis:
+      openclaw-redis:
         condition: service_healthy
-      clawdbot-browser:
+      openclaw-browser:
         condition: service_started
-    
+
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 120s
-    
+
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.clawdbot-gateway.entrypoints=http"
-      - "traefik.http.routers.clawdbot-gateway-secure.entrypoints=https"
-      - "traefik.http.routers.clawdbot-gateway-secure.tls=true"
-      - "traefik.http.services.clawdbot-gateway.loadbalancer.server.port=18789"
-    
+      - "traefik.http.routers.openclaw-gateway.entrypoints=http"
+      - "traefik.http.routers.openclaw-gateway-secure.entrypoints=https"
+      - "traefik.http.routers.openclaw-gateway-secure.tls=true"
+      - "traefik.http.services.openclaw-gateway.loadbalancer.server.port=18789"
+
     networks:
-      - clawdbot-network
+      - openclaw-network
 
   # =============================================================================
   # REDIS - Cache and Session Storage
   # =============================================================================
-  clawdbot-redis:
+  openclaw-redis:
     image: redis:7-alpine
-    container_name: clawdbot-redis
+    container_name: openclaw-redis
     restart: unless-stopped
-    
+
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-    
+
     volumes:
-      - clawdbot-redis-data:/data
-    
+      - openclaw-redis-data:/data
+
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 10s
-    
+
     networks:
-      - clawdbot-network
+      - openclaw-network
 
   # =============================================================================
   # BROWSER - Chromium for Browser Automation Tool
   # =============================================================================
-  clawdbot-browser:
+  openclaw-browser:
     image: chromedp/headless-shell:latest
-    container_name: clawdbot-browser
+    container_name: openclaw-browser
     restart: unless-stopped
-    
+
     # Shared memory for Chrome
     shm_size: 2gb
-    
+
     # Chrome runs with --remote-debugging-port=9222 by default
     # No healthcheck needed - chromedp/headless-shell is minimal
-    
+
     networks:
-      - clawdbot-network
+      - openclaw-network
 
 # =============================================================================
 # VOLUMES - Persistent Storage
 # =============================================================================
 volumes:
-  clawdbot-config:
-    name: clawdbot-config
-  clawdbot-workspace:
-    name: clawdbot-workspace
-  clawdbot-redis-data:
-    name: clawdbot-redis-data
+  openclaw-config:
+    name: openclaw-config
+  openclaw-workspace:
+    name: openclaw-workspace
+  openclaw-redis-data:
+    name: openclaw-redis-data
 
 # =============================================================================
 # NETWORKS
 # =============================================================================
 networks:
-  clawdbot-network:
+  openclaw-network:
     driver: bridge

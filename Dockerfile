@@ -1,20 +1,20 @@
-# Clawdbot Gateway - Optimized for Coolify Deployment
-# https://github.com/clawdbot/clawdbot
+# OpenClaw Gateway - Optimized for Coolify Deployment
+# https://github.com/openclaw/openclaw
 #
-# This Dockerfile builds a production-ready Clawdbot gateway with all
+# This Dockerfile builds a production-ready OpenClaw gateway with all
 # required binaries baked in for persistent operation.
 
 FROM node:22-bookworm
 
 # Build arguments
-ARG CLAWDBOT_VERSION=latest
+ARG OPENCLAW_VERSION=latest
 ARG TARGETARCH
 
 # Labels for container identification
-LABEL org.opencontainers.image.title="Clawdbot Gateway"
+LABEL org.opencontainers.image.title="OpenClaw Gateway"
 LABEL org.opencontainers.image.description="Personal AI Assistant - Gateway Service"
-LABEL org.opencontainers.image.source="https://github.com/clawdbot/clawdbot"
-LABEL org.opencontainers.image.vendor="Clawdbot"
+LABEL org.opencontainers.image.source="https://github.com/openclaw/openclaw"
+LABEL org.opencontainers.image.vendor="OpenClaw"
 LABEL org.opencontainers.image.licenses="MIT"
 
 # Install system dependencies
@@ -62,8 +62,8 @@ RUN ARCH=$(cat /tmp/arch) && \
     || echo "Warning: wacli installation failed (optional dependency)"
 
 # Create app user for security
-RUN groupadd -r clawdbot && useradd -r -g clawdbot -d /home/clawdbot -s /bin/bash clawdbot
-RUN mkdir -p /home/clawdbot && chown -R clawdbot:clawdbot /home/clawdbot
+RUN groupadd -r openclaw && useradd -r -g openclaw -d /home/openclaw -s /bin/bash openclaw
+RUN mkdir -p /home/openclaw && chown -R openclaw:openclaw /home/openclaw
 
 # Set working directory
 WORKDIR /app
@@ -71,8 +71,8 @@ WORKDIR /app
 # Enable corepack for pnpm
 RUN corepack enable
 
-# Clone and build Clawdbot from source
-RUN git clone --depth 1 https://github.com/clawdbot/clawdbot.git . && \
+# Clone and build OpenClaw from source
+RUN git clone --depth 1 https://github.com/openclaw/openclaw.git . && \
     pnpm install && \
     pnpm build && \
     pnpm ui:install && \
@@ -82,17 +82,17 @@ RUN git clone --depth 1 https://github.com/clawdbot/clawdbot.git . && \
 COPY entrypoint.sh /app/entrypoint.sh
 
 # Create directories for persistent data and set ownership
-RUN mkdir -p /data/.clawdbot /data/clawd && \
-    chown -R clawdbot:clawdbot /data && \
-    chown -R clawdbot:clawdbot /app && \
+RUN mkdir -p /data/.openclaw /data/openclaw && \
+    chown -R openclaw:openclaw /data && \
+    chown -R openclaw:openclaw /app && \
     chmod +x /app/entrypoint.sh
 
 # Environment variables
 ENV NODE_ENV=production
-ENV HOME=/home/clawdbot
-ENV CLAWDBOT_CONFIG_PATH=/data/.clawdbot/clawdbot.json
-ENV CLAWDBOT_STATE_DIR=/data/.clawdbot
-ENV XDG_CONFIG_HOME=/data/.clawdbot
+ENV HOME=/home/openclaw
+ENV OPENCLAW_CONFIG_PATH=/data/.openclaw/openclaw.json
+ENV OPENCLAW_STATE_DIR=/data/.openclaw
+ENV XDG_CONFIG_HOME=/data/.openclaw
 
 # Expose ports
 # 18789 - Gateway WebSocket + HTTP (Control UI)
@@ -104,7 +104,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:18789/health || exit 1
 
 # Switch to non-root user for security
-USER clawdbot
+USER openclaw
 
 # Use entrypoint script to handle config generation
 ENTRYPOINT ["/app/entrypoint.sh"]

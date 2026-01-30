@@ -1,27 +1,27 @@
 #!/bin/bash
-# Clawdbot Gateway Entrypoint
+# OpenClaw Gateway Entrypoint
 # This script ensures the gateway can start with proper configuration
 
 set -e
 
 # If no gateway token is set, generate one automatically
-if [ -z "$CLAWDBOT_GATEWAY_TOKEN" ]; then
-    export CLAWDBOT_GATEWAY_TOKEN=$(openssl rand -hex 32)
-    echo "Generated gateway token: $CLAWDBOT_GATEWAY_TOKEN"
+if [ -z "$OPENCLAW_GATEWAY_TOKEN" ]; then
+    export OPENCLAW_GATEWAY_TOKEN=$(openssl rand -hex 32)
+    echo "Generated gateway token: $OPENCLAW_GATEWAY_TOKEN"
     echo "Save this token to access the Control UI!"
 fi
 
 # Build trusted proxies JSON array from environment variable
 # Default includes common Docker gateway IPs
 DEFAULT_PROXIES="10.0.0.1,10.0.1.1,10.0.1.2,10.0.2.1,10.0.2.2,10.0.3.1,10.0.3.2,10.0.4.1,172.17.0.1,172.18.0.1,127.0.0.1"
-TRUSTED_PROXIES=${CLAWDBOT_TRUSTED_PROXIES:-$DEFAULT_PROXIES}
+TRUSTED_PROXIES=${OPENCLAW_TRUSTED_PROXIES:-$DEFAULT_PROXIES}
 
 # Convert comma-separated list to JSON array
 PROXIES_JSON=$(echo "$TRUSTED_PROXIES" | sed 's/,/", "/g' | sed 's/^/["/' | sed 's/$/"]/')
 echo "Trusted proxies: $PROXIES_JSON"
 
 # Create config directory if it doesn't exist
-mkdir -p /data/.clawdbot
+mkdir -p /data/.openclaw
 
 # Determine default model based on available API keys
 DEFAULT_MODEL="anthropic/claude-sonnet-4-5"  # fallback
@@ -47,7 +47,7 @@ fi
 
 # Always create/update config to ensure gateway.mode is set
 # (Previous configs may be missing required fields)
-cat > /data/.clawdbot/clawdbot.json << EOF
+cat > /data/.openclaw/openclaw.json << EOF
 {
   "gateway": {
     "mode": "local",
@@ -55,7 +55,7 @@ cat > /data/.clawdbot/clawdbot.json << EOF
     "port": 18789,
     "auth": {
       "mode": "token",
-      "token": "${CLAWDBOT_GATEWAY_TOKEN}"
+      "token": "${OPENCLAW_GATEWAY_TOKEN}"
     },
     "trustedProxies": ${PROXIES_JSON},
     "controlUi": {
@@ -86,7 +86,7 @@ cat > /data/.clawdbot/clawdbot.json << EOF
   },
   "agents": {
     "defaults": {
-      "workspace": "/data/clawd",
+      "workspace": "/data/openclaw",
       "model": {
         "primary": "${DEFAULT_MODEL}"
       }
@@ -94,10 +94,10 @@ cat > /data/.clawdbot/clawdbot.json << EOF
   }
 }
 EOF
-echo "Config written to /data/.clawdbot/clawdbot.json"
+echo "Config written to /data/.openclaw/openclaw.json"
 
 # Create auth-profiles.json for API keys / OAuth tokens
-AUTH_DIR="/data/.clawdbot/agents/main/agent"
+AUTH_DIR="/data/.openclaw/agents/main/agent"
 mkdir -p "$AUTH_DIR"
 
 # Build auth profiles JSON directly (avoid jq complexity)
