@@ -1,12 +1,12 @@
 {
-  "// DOCUMENTATION": "See https://docs.clawd.bot/gateway/configuration for full reference",
+  "// DOCUMENTATION": "See https://docs.openclaw.ai/gateway/configuration for full reference",
   
   "agent": {
-    "// model": "AI model to use. Recommended: anthropic/claude-opus-4-5",
-    "model": "anthropic/claude-sonnet-4-20250514",
+    "// model": "AI model to use. Recommended: anthropic/claude-sonnet-4-5",
+    "model": "anthropic/claude-sonnet-4-5",
     
     "// workspace": "Agent workspace directory",
-    "workspace": "/data/clawd"
+    "workspace": "/data/openclaw"
   },
   
   "gateway": {
@@ -17,7 +17,7 @@
     "port": 18789,
     
     "auth": {
-      "// token": "Set via CLAWDBOT_GATEWAY_TOKEN env var",
+      "// token": "Set via OPENCLAW_GATEWAY_TOKEN env var",
       "mode": "token"
     }
   },
@@ -76,7 +76,7 @@
   
   "browser": {
     "enabled": true,
-    "controlUrl": "http://clawdbot-browser:9222"
+    "controlUrl": "http://openclaw-browser:9222"
   },
   
   "tools": {
@@ -89,7 +89,7 @@
   
   "agents": {
     "defaults": {
-      "workspace": "/data/clawd",
+      "workspace": "/data/openclaw",
       
       "sandbox": {
         "// mode": "Sandbox mode: off, non-main, all",
@@ -100,7 +100,7 @@
   
   "messages": {
     "groupChat": {
-      "mentionPatterns": ["@clawd", "@clawdbot"]
+      "mentionPatterns": ["@openclaw"]
     }
   }
 }

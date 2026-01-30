@@ -1,12 +1,12 @@
-# Clawdbot Browser Automation Container
+# OpenClaw Browser Automation Container
 # Provides Chromium with CDP for browser tool functionality
 #
-# Based on the official Clawdbot sandbox-browser setup
+# Based on the official OpenClaw sandbox-browser setup
 
 FROM debian:bookworm-slim
 
-LABEL org.opencontainers.image.title="Clawdbot Browser"
-LABEL org.opencontainers.image.description="Browser automation container for Clawdbot"
+LABEL org.opencontainers.image.title="OpenClaw Browser"
+LABEL org.opencontainers.image.description="Browser automation container for OpenClaw"
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
