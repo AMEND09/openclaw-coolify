@@ -50,7 +50,7 @@ fi
 cat > /data/.openclaw/openclaw.json << EOF
 {
   "gateway": {
-    "mode": "local",
+    "mode": "gateway",
     "bind": "lan",
     "port": 18789,
     "auth": {
