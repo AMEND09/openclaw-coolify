@@ -66,7 +66,7 @@ if [ "$SHOULD_REGENERATE" = true ]; then
     if [ "$FIRST_CHANNEL" = false ]; then
         CHANNELS_JSON="$CHANNELS_JSON,"
     fi
-    CHANNELS_JSON="$CHANNELS_JSON\"whatsapp\":{\"enabled\":true,\"allowFrom\":[],\"groups\":{\"*\":{\"requireMention\":true}}}"
+    CHANNELS_JSON="$CHANNELS_JSON\"whatsapp\":{\"allowFrom\":[],\"groups\":{\"*\":{\"requireMention\":true}}}"
     FIRST_CHANNEL=false
 
     # Add Telegram if token is provided
@@ -89,12 +89,18 @@ if [ "$SHOULD_REGENERATE" = true ]; then
 
     CHANNELS_JSON="$CHANNELS_JSON}"
 
-    # Create the complete config
+    # Create the complete config using current OpenClaw schema
+    # - agents.defaults.model.primary replaces agent.model
+    # - browser.cdpUrl replaces browser.controlUrl
     cat > /data/.openclaw/openclaw.json << EOF
 {
-  "agent": {
-    "model": "${DEFAULT_MODEL}",
-    "workspace": "/data/openclaw"
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "${DEFAULT_MODEL}"
+      },
+      "workspace": "/data/openclaw"
+    }
   },
   "gateway": {
     "bind": "${OPENCLAW_GATEWAY_BIND:-lan}",
@@ -111,12 +117,7 @@ if [ "$SHOULD_REGENERATE" = true ]; then
   "channels": ${CHANNELS_JSON},
   "browser": {
     "enabled": ${OPENCLAW_BROWSER_ENABLED:-true},
-    "controlUrl": "${OPENCLAW_BROWSER_URL:-http://openclaw-browser:9222}"
-  },
-  "agents": {
-    "defaults": {
-      "workspace": "/data/openclaw"
-    }
+    "cdpUrl": "${OPENCLAW_BROWSER_URL:-http://openclaw-browser:9222}"
   }
 }
 EOF
