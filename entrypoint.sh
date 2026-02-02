@@ -35,7 +35,7 @@ echo "Trusted proxies: $PROXIES_JSON"
 
 # Determine default model based on available API keys
 DEFAULT_MODEL="anthropic/claude-sonnet-4-5"  # fallback
-if [ -n "$ANTHROPIC_API_KEY" ]; then
+if [ -n "$ANTHROPIC_API_KEY" ] || [ -n "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" ]; then
     DEFAULT_MODEL="anthropic/claude-sonnet-4-5"
 elif [ -n "$GEMINI_API_KEY" ]; then
     DEFAULT_MODEL="google/gemini-3-pro-preview"
@@ -46,11 +46,12 @@ elif [ -n "$OPENROUTER_API_KEY" ]; then
 fi
 echo "Default model: $DEFAULT_MODEL"
 
-# Determine if we should regenerate config
-# Only regenerate if config doesn't exist or missing critical fields
-SHOULD_REGENERATE=false
-if [ ! -f "/data/.openclaw/openclaw.json" ]; then
-    SHOULD_REGENERATE=true
+# Always regenerate config from environment variables to ensure
+# current settings are applied (env vars are the source of truth)
+SHOULD_REGENERATE=true
+if [ -f "/data/.openclaw/openclaw.json" ]; then
+    echo "Regenerating configuration from environment variables..."
+else
     echo "No existing config found, creating new configuration"
 fi
 
