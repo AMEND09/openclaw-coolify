@@ -2,7 +2,9 @@
 # OpenClaw Gateway Entrypoint
 # This script ensures the gateway can start with proper configuration
 
-set -e
+# Don't use set -e: we want the script to continue even if
+# intermediate commands (doctor, paste-token) report non-fatal errors
+set +e
 
 # Create config directory if it doesn't exist
 mkdir -p /data/.openclaw
@@ -125,6 +127,11 @@ EOF
 else
     echo "Using existing configuration from /data/.openclaw/openclaw.json"
 fi
+
+# Run doctor --fix to clean up any legacy config keys before auth setup
+# This prevents paste-token from failing on config validation
+echo "Running doctor --fix to clean up config..."
+node dist/index.js doctor --fix 2>&1 || echo "Note: doctor --fix reported issues (non-fatal)"
 
 # Setup authentication using OpenClaw's native methods
 echo "Configuring authentication..."
