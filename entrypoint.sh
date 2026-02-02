@@ -125,65 +125,93 @@ else
 fi
 
 # Setup authentication using OpenClaw's native methods
-# OpenClaw reads API keys from environment variables and .env files
 echo "Configuring authentication..."
 
-# Create agent directory structure
+# Create agent directory structure (where OpenClaw reads auth-profiles.json)
 AGENT_DIR="/data/.openclaw/agents/main/agent"
 mkdir -p "$AGENT_DIR"
 
-# Create .env file in the agent directory where OpenClaw expects it
-ENV_FILE="$AGENT_DIR/.env"
+# Write .env to BOTH locations (root config dir + agent dir)
+# OpenClaw docs: cat >> ~/.openclaw/.env <<'EOF' ANTHROPIC_API_KEY=... EOF
+ROOT_ENV="/data/.openclaw/.env"
+AGENT_ENV="$AGENT_DIR/.env"
+
+# Clear previous .env files to avoid duplicates on restart
+> "$ROOT_ENV"
+> "$AGENT_ENV"
 
 # Check if any auth is configured
 HAS_AUTH=false
 
-# API keys are read directly from environment by OpenClaw
+# Write API keys to both .env locations
 if [ -n "$ANTHROPIC_API_KEY" ]; then
-    echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> "$ENV_FILE"
+    echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> "$ROOT_ENV"
+    echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> "$AGENT_ENV"
     echo "Configured Anthropic API key"
     HAS_AUTH=true
 fi
 
 if [ -n "$OPENAI_API_KEY" ]; then
-    echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> "$ENV_FILE"
+    echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> "$ROOT_ENV"
+    echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> "$AGENT_ENV"
     echo "Configured OpenAI API key"
     HAS_AUTH=true
 fi
 
 if [ -n "$GEMINI_API_KEY" ]; then
-    echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> "$ENV_FILE"
+    echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> "$ROOT_ENV"
+    echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> "$AGENT_ENV"
     echo "Configured Gemini API key"
     HAS_AUTH=true
 fi
 
 if [ -n "$OPENROUTER_API_KEY" ]; then
-    echo "OPENROUTER_API_KEY=$OPENROUTER_API_KEY" >> "$ENV_FILE"
+    echo "OPENROUTER_API_KEY=$OPENROUTER_API_KEY" >> "$ROOT_ENV"
+    echo "OPENROUTER_API_KEY=$OPENROUTER_API_KEY" >> "$AGENT_ENV"
     echo "Configured OpenRouter API key"
     HAS_AUTH=true
 fi
 
-# For setup-tokens, create auth-profiles.json directly
+# For setup-tokens, use the paste-token CLI command which writes the correct
+# OAuth-based format to auth-profiles.json. Do NOT manually create the file.
+# Ref: openclaw models auth paste-token --provider anthropic
 if [ -n "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" ]; then
-    echo "Adding Anthropic setup-token..."
-    AUTH_PROFILES_FILE="$AGENT_DIR/auth-profiles.json"
-    cat > "$AUTH_PROFILES_FILE" << EOF
-{
-  "anthropic": {
-    "type": "setup-token",
-    "setupToken": "$OPENCLAW_ANTHROPIC_SETUP_TOKEN"
-  }
-}
-EOF
-    echo "Auth profiles written to $AUTH_PROFILES_FILE"
+    echo "Adding Anthropic setup-token via paste-token command..."
+    echo "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" | node dist/index.js models auth paste-token --provider anthropic --yes 2>&1 || {
+        echo "ERROR: paste-token command failed. Retrying with explicit agent dir..."
+        # Retry with OPENCLAW_STATE_DIR explicitly set
+        OPENCLAW_STATE_DIR=/data/.openclaw echo "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" | node dist/index.js models auth paste-token --provider anthropic --yes 2>&1 || {
+            echo "ERROR: Setup-token configuration failed. Check token validity."
+            echo "Generate a fresh token with: claude setup-token"
+        }
+    }
+    # Verify auth-profiles.json was created
+    if [ -f "$AGENT_DIR/auth-profiles.json" ]; then
+        echo "Auth profiles written to $AGENT_DIR/auth-profiles.json"
+        HAS_AUTH=true
+    else
+        echo "WARNING: auth-profiles.json not found at $AGENT_DIR/auth-profiles.json"
+        # Search for where it was actually written
+        find /data/.openclaw -name "auth-profiles.json" -type f 2>/dev/null | while read f; do
+            echo "  Found auth-profiles.json at: $f"
+        done
+    fi
+fi
+
+# Also handle CLAUDE_CODE_OAUTH_TOKEN if present
+if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+    echo "CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN" >> "$ROOT_ENV"
+    echo "CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN" >> "$AGENT_ENV"
+    echo "Configured Claude Code OAuth token"
     HAS_AUTH=true
 fi
 
-# Also export API keys as environment variables for the process
+# Export API keys as environment variables for the process
 export ANTHROPIC_API_KEY
 export OPENAI_API_KEY
 export GEMINI_API_KEY
 export OPENROUTER_API_KEY
+export CLAUDE_CODE_OAUTH_TOKEN
 
 if [ "$HAS_AUTH" = false ]; then
     echo ""
