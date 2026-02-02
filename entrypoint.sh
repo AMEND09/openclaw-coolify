@@ -143,7 +143,15 @@ if [ -n "$ANTHROPIC_API_KEY" ]; then
     FIRST=false
 fi
 
-# Add Anthropic OAuth token if provided (Claude Code subscription)
+# Add Anthropic setup-token if provided (Claude Pro/Max subscription)
+if [ -n "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" ]; then
+    [ "$FIRST" = false ] && AUTH_JSON="$AUTH_JSON,"
+    AUTH_JSON="$AUTH_JSON\"anthropic:setup-token\":{\"provider\":\"anthropic\",\"mode\":\"setup_token\",\"setupToken\":\"$OPENCLAW_ANTHROPIC_SETUP_TOKEN\"}"
+    echo "Added Anthropic setup-token (Claude subscription)"
+    FIRST=false
+fi
+
+# Add Anthropic OAuth token if provided (legacy Claude Code support)
 if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
     [ "$FIRST" = false ] && AUTH_JSON="$AUTH_JSON,"
     AUTH_JSON="$AUTH_JSON\"anthropic:oauth\":{\"provider\":\"anthropic\",\"mode\":\"oauth\",\"oauthToken\":\"$CLAUDE_CODE_OAUTH_TOKEN\"}"
@@ -188,7 +196,7 @@ else
     echo "WARNING: No API keys configured!"
     echo "=========================================="
     echo "Add one of these environment variables in Coolify:"
-    echo "  - CLAUDE_CODE_OAUTH_TOKEN - for Claude Pro (run 'claude setup-token')"
+    echo "  - OPENCLAW_ANTHROPIC_SETUP_TOKEN - for Claude Pro/Max (run 'claude setup-token')"
     echo "  - ANTHROPIC_API_KEY - get from https://console.anthropic.com/settings/keys"
     echo "  - GEMINI_API_KEY - get from https://aistudio.google.com/apikey"
     echo "  - OPENAI_API_KEY - get from https://platform.openai.com/api-keys"
