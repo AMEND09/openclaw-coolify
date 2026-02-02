@@ -124,73 +124,53 @@ else
     echo "Using existing configuration from /data/.openclaw/openclaw.json"
 fi
 
-# Create auth-profiles.json for API keys / OAuth tokens
-AUTH_DIR="/data/.openclaw/agents/main/agent"
-mkdir -p "$AUTH_DIR"
+# Setup authentication using OpenClaw's native methods
+# OpenClaw reads API keys from environment variables and .env files
+echo "Configuring authentication..."
 
-# Build auth profiles JSON directly (avoid jq complexity)
-echo "Building auth profiles..."
+# Create .env file for OpenClaw to read
+ENV_FILE="/data/.openclaw/.env"
+mkdir -p "$(dirname "$ENV_FILE")"
 
-# Start JSON object
-AUTH_JSON="{"
-FIRST=true
+# Check if any auth is configured
+HAS_AUTH=false
 
-# Add Anthropic API key if provided
+# API keys are read directly from environment by OpenClaw
 if [ -n "$ANTHROPIC_API_KEY" ]; then
-    [ "$FIRST" = false ] && AUTH_JSON="$AUTH_JSON,"
-    AUTH_JSON="$AUTH_JSON\"anthropic:api\":{\"provider\":\"anthropic\",\"mode\":\"api_key\",\"apiKey\":\"$ANTHROPIC_API_KEY\"}"
-    echo "Added Anthropic API key"
-    FIRST=false
+    echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> "$ENV_FILE"
+    echo "Configured Anthropic API key"
+    HAS_AUTH=true
 fi
 
-# Add Anthropic setup-token if provided (Claude Pro/Max subscription)
-if [ -n "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" ]; then
-    [ "$FIRST" = false ] && AUTH_JSON="$AUTH_JSON,"
-    AUTH_JSON="$AUTH_JSON\"anthropic:setup-token\":{\"provider\":\"anthropic\",\"mode\":\"setup_token\",\"setupToken\":\"$OPENCLAW_ANTHROPIC_SETUP_TOKEN\"}"
-    echo "Added Anthropic setup-token (Claude subscription)"
-    FIRST=false
-fi
-
-# Add Anthropic OAuth token if provided (legacy Claude Code support)
-if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
-    [ "$FIRST" = false ] && AUTH_JSON="$AUTH_JSON,"
-    AUTH_JSON="$AUTH_JSON\"anthropic:oauth\":{\"provider\":\"anthropic\",\"mode\":\"oauth\",\"oauthToken\":\"$CLAUDE_CODE_OAUTH_TOKEN\"}"
-    echo "Added Anthropic OAuth token (Claude Code)"
-    FIRST=false
-fi
-
-# Add OpenAI API key if provided
 if [ -n "$OPENAI_API_KEY" ]; then
-    [ "$FIRST" = false ] && AUTH_JSON="$AUTH_JSON,"
-    AUTH_JSON="$AUTH_JSON\"openai:api\":{\"provider\":\"openai\",\"mode\":\"api_key\",\"apiKey\":\"$OPENAI_API_KEY\"}"
-    echo "Added OpenAI API key"
-    FIRST=false
+    echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> "$ENV_FILE"
+    echo "Configured OpenAI API key"
+    HAS_AUTH=true
 fi
 
-# Add OpenRouter API key if provided
-if [ -n "$OPENROUTER_API_KEY" ]; then
-    [ "$FIRST" = false ] && AUTH_JSON="$AUTH_JSON,"
-    AUTH_JSON="$AUTH_JSON\"openrouter:api\":{\"provider\":\"openrouter\",\"mode\":\"api_key\",\"apiKey\":\"$OPENROUTER_API_KEY\"}"
-    echo "Added OpenRouter API key"
-    FIRST=false
-fi
-
-# Add Gemini API key if provided
 if [ -n "$GEMINI_API_KEY" ]; then
-    [ "$FIRST" = false ] && AUTH_JSON="$AUTH_JSON,"
-    AUTH_JSON="$AUTH_JSON\"google:api\":{\"provider\":\"google\",\"mode\":\"api_key\",\"apiKey\":\"$GEMINI_API_KEY\"}"
-    echo "Added Gemini API key"
-    FIRST=false
+    echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> "$ENV_FILE"
+    echo "Configured Gemini API key"
+    HAS_AUTH=true
 fi
 
-# Close JSON object
-AUTH_JSON="$AUTH_JSON}"
+if [ -n "$OPENROUTER_API_KEY" ]; then
+    echo "OPENROUTER_API_KEY=$OPENROUTER_API_KEY" >> "$ENV_FILE"
+    echo "Configured OpenRouter API key"
+    HAS_AUTH=true
+fi
 
-# Write auth profiles if any keys were added
-if [ "$FIRST" = false ]; then
-    echo "$AUTH_JSON" > "$AUTH_DIR/auth-profiles.json"
-    echo "Auth profiles written to $AUTH_DIR/auth-profiles.json"
-else
+# For setup-tokens, use openclaw CLI to add them properly
+if [ -n "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" ]; then
+    echo "Adding Anthropic setup-token..."
+    # The paste-token command will write to auth-profiles.json in the correct format
+    echo "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" | node dist/index.js models auth paste-token --provider anthropic --yes 2>/dev/null || {
+        echo "Note: Setup-token will be configured on first gateway start"
+    }
+    HAS_AUTH=true
+fi
+
+if [ "$HAS_AUTH" = false ]; then
     echo ""
     echo "=========================================="
     echo "WARNING: No API keys configured!"
