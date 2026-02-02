@@ -105,6 +105,7 @@ if [ "$SHOULD_REGENERATE" = true ]; then
     }
   },
   "gateway": {
+    "mode": "remote",
     "bind": "${OPENCLAW_GATEWAY_BIND:-lan}",
     "port": ${OPENCLAW_GATEWAY_PORT:-18789},
     "auth": {
@@ -186,10 +187,9 @@ fi
 # Ref: openclaw models auth paste-token --provider anthropic
 if [ -n "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" ]; then
     echo "Adding Anthropic setup-token via paste-token command..."
-    echo "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" | node dist/index.js models auth paste-token --provider anthropic --yes 2>&1 || {
+    echo "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" | node dist/index.js models auth paste-token --provider anthropic 2>&1 || {
         echo "ERROR: paste-token command failed. Retrying with explicit agent dir..."
-        # Retry with OPENCLAW_STATE_DIR explicitly set
-        OPENCLAW_STATE_DIR=/data/.openclaw echo "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" | node dist/index.js models auth paste-token --provider anthropic --yes 2>&1 || {
+        OPENCLAW_STATE_DIR=/data/.openclaw echo "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" | node dist/index.js models auth paste-token --provider anthropic 2>&1 || {
             echo "ERROR: Setup-token configuration failed. Check token validity."
             echo "Generate a fresh token with: claude setup-token"
         }
