@@ -128,9 +128,12 @@ fi
 # OpenClaw reads API keys from environment variables and .env files
 echo "Configuring authentication..."
 
-# Create .env file for OpenClaw to read
-ENV_FILE="/data/.openclaw/.env"
-mkdir -p "$(dirname "$ENV_FILE")"
+# Create agent directory structure
+AGENT_DIR="/data/.openclaw/agents/main/agent"
+mkdir -p "$AGENT_DIR"
+
+# Create .env file in the agent directory where OpenClaw expects it
+ENV_FILE="$AGENT_DIR/.env"
 
 # Check if any auth is configured
 HAS_AUTH=false
@@ -160,15 +163,27 @@ if [ -n "$OPENROUTER_API_KEY" ]; then
     HAS_AUTH=true
 fi
 
-# For setup-tokens, use openclaw CLI to add them properly
+# For setup-tokens, create auth-profiles.json directly
 if [ -n "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" ]; then
     echo "Adding Anthropic setup-token..."
-    # The paste-token command will write to auth-profiles.json in the correct format
-    echo "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" | node dist/index.js models auth paste-token --provider anthropic --yes 2>/dev/null || {
-        echo "Note: Setup-token will be configured on first gateway start"
-    }
+    AUTH_PROFILES_FILE="$AGENT_DIR/auth-profiles.json"
+    cat > "$AUTH_PROFILES_FILE" << EOF
+{
+  "anthropic": {
+    "type": "setup-token",
+    "setupToken": "$OPENCLAW_ANTHROPIC_SETUP_TOKEN"
+  }
+}
+EOF
+    echo "Auth profiles written to $AUTH_PROFILES_FILE"
     HAS_AUTH=true
 fi
+
+# Also export API keys as environment variables for the process
+export ANTHROPIC_API_KEY
+export OPENAI_API_KEY
+export GEMINI_API_KEY
+export OPENROUTER_API_KEY
 
 if [ "$HAS_AUTH" = false ]; then
     echo ""
@@ -186,4 +201,4 @@ if [ "$HAS_AUTH" = false ]; then
 fi
 
 # Start the gateway with environment-variable-driven configuration
-exec node dist/index.js gateway --bind "${OPENCLAW_GATEWAY_BIND:-lan}" --port "${OPENCLAW_GATEWAY_PORT:-18789}" --allow-unconfigured
+exec node dist/index.js gateway --bind "${OPENCLAW_GATEWAY_BIND:-lan}" --port "${OPENCLAW_GATEWAY_PORT:-18789}"

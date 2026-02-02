@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     socat \
     jq \
     ffmpeg \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Bun (required for some build scripts)
@@ -61,6 +62,19 @@ RUN ARCH=$(cat /tmp/arch) && \
     | tar -xz -C /usr/local/bin && chmod +x /usr/local/bin/wacli \
     || echo "Warning: wacli installation failed (optional dependency)"
 
+# Install Bitwarden CLI (for Vaultwarden support)
+RUN npm install -g @bitwarden/cli && \
+    ln -s /usr/local/lib/node_modules/@bitwarden/cli/bw.js /usr/local/bin/bw || \
+    echo "Warning: Bitwarden CLI installation failed (optional dependency)"
+
+# Install rbw (Rust Bitwarden CLI) - alternative efficient client
+RUN ARCH=$(cat /tmp/arch) && \
+    if [ "$ARCH" = "x86_64" ]; then RBW_ARCH="x86_64"; else RBW_ARCH="aarch64"; fi && \
+    curl -L "https://git.tozt.net/rbw/plain/bin/rbw-${RBW_ARCH}-linux" -o /usr/local/bin/rbw && \
+    curl -L "https://git.tozt.net/rbw/plain/bin/rbw-agent-${RBW_ARCH}-linux" -o /usr/local/bin/rbw-agent && \
+    chmod +x /usr/local/bin/rbw /usr/local/bin/rbw-agent \
+    || echo "Warning: rbw installation failed (optional dependency)"
+
 # Create app user for security
 RUN groupadd -r openclaw && useradd -r -g openclaw -d /home/openclaw -s /bin/bash openclaw
 RUN mkdir -p /home/openclaw && chown -R openclaw:openclaw /home/openclaw
@@ -77,6 +91,9 @@ RUN git clone --depth 1 https://github.com/openclaw/openclaw.git . && \
     pnpm build && \
     pnpm ui:install && \
     pnpm ui:build
+
+# Install additional CLI tools for OpenClaw skills
+RUN npm install -g @steipete/bird || echo "Warning: bird CLI installation failed (optional dependency)"
 
 # Copy entrypoint script
 COPY entrypoint.sh /app/entrypoint.sh
