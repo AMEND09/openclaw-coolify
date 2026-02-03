@@ -109,7 +109,7 @@ if [ "$SHOULD_REGENERATE" = true ]; then
     }
   },
   "gateway": {
-    "mode": "gateway",
+    "mode": "remote",
     "bind": "${OPENCLAW_GATEWAY_BIND:-lan}",
     "port": ${OPENCLAW_GATEWAY_PORT:-18789},
     "auth": {
