@@ -105,8 +105,10 @@ RUN mkdir -p /data/.openclaw /data/openclaw && \
     chmod +x /app/entrypoint.sh
 
 # Environment variables
+# HOME=/data so that ~/.openclaw resolves to /data/.openclaw
+# This ensures paste-token, gateway, and doctor all use the same auth path
 ENV NODE_ENV=production
-ENV HOME=/home/openclaw
+ENV HOME=/data
 ENV OPENCLAW_CONFIG_PATH=/data/.openclaw/openclaw.json
 ENV OPENCLAW_STATE_DIR=/data/.openclaw
 ENV XDG_CONFIG_HOME=/data/.openclaw

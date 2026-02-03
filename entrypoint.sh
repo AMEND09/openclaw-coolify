@@ -6,6 +6,10 @@
 # intermediate commands (doctor, paste-token) report non-fatal errors
 set +e
 
+# Ensure HOME points to /data so ~/.openclaw resolves to /data/.openclaw
+# This is critical: paste-token, doctor, and gateway all resolve auth paths from $HOME
+export HOME=/data
+
 # Create config directory if it doesn't exist
 mkdir -p /data/.openclaw
 
@@ -187,24 +191,21 @@ fi
 # Ref: openclaw models auth paste-token --provider anthropic
 if [ -n "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" ]; then
     echo "Adding Anthropic setup-token via paste-token command..."
+    echo "HOME=$HOME (~/.openclaw = $HOME/.openclaw)"
     echo "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" | node dist/index.js models auth paste-token --provider anthropic 2>&1 || {
-        echo "ERROR: paste-token command failed. Retrying with explicit agent dir..."
-        OPENCLAW_STATE_DIR=/data/.openclaw echo "$OPENCLAW_ANTHROPIC_SETUP_TOKEN" | node dist/index.js models auth paste-token --provider anthropic 2>&1 || {
-            echo "ERROR: Setup-token configuration failed. Check token validity."
-            echo "Generate a fresh token with: claude setup-token"
-        }
+        echo "ERROR: paste-token command failed. Check token validity."
+        echo "Generate a fresh token with: claude setup-token"
     }
-    # Verify auth-profiles.json was created
-    if [ -f "$AGENT_DIR/auth-profiles.json" ]; then
-        echo "Auth profiles written to $AGENT_DIR/auth-profiles.json"
-        HAS_AUTH=true
-    else
-        echo "WARNING: auth-profiles.json not found at $AGENT_DIR/auth-profiles.json"
-        # Search for where it was actually written
-        find /data/.openclaw -name "auth-profiles.json" -type f 2>/dev/null | while read f; do
-            echo "  Found auth-profiles.json at: $f"
-        done
-    fi
+    # Search for where auth-profiles.json was written
+    echo "Searching for auth-profiles.json files..."
+    find /data/.openclaw -name "auth-profiles.json" -type f 2>/dev/null | while read f; do
+        echo "  Found: $f"
+    done
+    # Also check if it was written under the old HOME path
+    find /home/openclaw -name "auth-profiles.json" -type f 2>/dev/null | while read f; do
+        echo "  Found (old HOME): $f"
+    done
+    HAS_AUTH=true
 fi
 
 # Also handle CLAUDE_CODE_OAUTH_TOKEN if present
@@ -236,6 +237,10 @@ if [ "$HAS_AUTH" = false ]; then
     echo "=========================================="
     echo ""
 fi
+
+# Verify auth status before starting gateway
+echo "Verifying model authentication status..."
+node dist/index.js models status 2>&1 || echo "Note: models status check completed (non-fatal)"
 
 # Start the gateway with environment-variable-driven configuration
 exec node dist/index.js gateway --bind "${OPENCLAW_GATEWAY_BIND:-lan}" --port "${OPENCLAW_GATEWAY_PORT:-18789}"
